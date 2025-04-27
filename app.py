@@ -53,8 +53,11 @@ def main(user_input):
         )
         checklist, base_date = mtt_checklist(price_df, rs_value)
         report = format_mtt_report(name, base_date, checklist, rs_value, latest)
-        # 결과 예쁘게 출력 (폰트/줄바꿈 등 그대로)
-        st.markdown(f"<pre style='font-size:1.1em; background:#f8f9fa; border-radius:12px; padding:14px; white-space:pre-wrap; word-break:break-all;'>{report}</pre>", unsafe_allow_html=True)
+        # 🔥 여기서 줄바꿈 완벽 적용!
+        st.markdown(
+            f"<pre style='font-size:1.1em; background:#f8f9fa; border-radius:12px; padding:14px; white-space:pre-wrap; word-break:break-all;'>{report}</pre>",
+            unsafe_allow_html=True
+        )
     except Exception as e:
         st.error(f"❗ 오류 발생: {e}")
 
