@@ -53,9 +53,9 @@ def main(user_input):
         )
         checklist, base_date = mtt_checklist(price_df, rs_value)
         report = format_mtt_report(name, base_date, checklist, rs_value, latest)
-        # 🔥 여기서 줄바꿈 완벽 적용!
+        # 🔥 줄바꿈 확실하게! \n을 <br>로 변환해서 HTML로 출력
         st.markdown(
-            f"<pre style='font-size:1.1em; background:#f8f9fa; border-radius:12px; padding:14px; white-space:pre-wrap; word-break:break-all;'>{report}</pre>",
+            f"<div style='font-size:1.1em; background:#f8f9fa; border-radius:12px; padding:14px;'>{report.replace(chr(10), '<br>')}</div>",
             unsafe_allow_html=True
         )
     except Exception as e:
@@ -64,6 +64,5 @@ def main(user_input):
 if run_btn or (user_input and st.session_state.get("input_submitted")):
     main(user_input)
 elif user_input:
-    # 엔터로 바로 실행 (Streamlit 1.18+에서 지원)
     st.session_state["input_submitted"] = True
     main(user_input)
