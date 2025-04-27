@@ -21,6 +21,29 @@ def suggest_stocks(user_input, stock_map, n=5):
 st.title("📈 Minervini Trend Template 자동 분석기 📊")
 st.markdown("**종목명(또는 6자리 코드)**를 입력하면 최신 MTT 체크리스트 결과가 바로 출력됩니다.<br>예: 삼성전자, 005930", unsafe_allow_html=True)
 
+# 🔥 다크/라이트 모드 자동 감지 스타일
+st.markdown(
+    """
+    <style>
+    .mtt-result-box {
+      font-size: 1.1em;
+      border-radius: 12px;
+      padding: 14px;
+      margin-top: 10px;
+      background: #f8f9fa;
+      color: black;
+    }
+    @media (prefers-color-scheme: dark) {
+      .mtt-result-box {
+        background: #222831 !important;
+        color: #f1f1f1 !important;
+      }
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
 user_input = st.text_input("종목명 또는 6자리 종목코드 입력", value="", placeholder="예: 삼성전자 또는 005930")
 run_btn = st.button("분석하기")
 
@@ -53,9 +76,9 @@ def main(user_input):
         )
         checklist, base_date = mtt_checklist(price_df, rs_value)
         report = format_mtt_report(name, base_date, checklist, rs_value, latest)
-        # 🔥 줄바꿈 확실하게! \n을 <br>로 변환해서 HTML로 출력
+        # ✅ 줄바꿈은 <br>로, 스타일은 class로!
         st.markdown(
-            f"<div style='font-size:1.1em; background:#f8f9fa; border-radius:12px; padding:14px;'>{report.replace(chr(10), '<br>')}</div>",
+            f"<div class='mtt-result-box'>{report.replace(chr(10), '<br>')}</div>",
             unsafe_allow_html=True
         )
     except Exception as e:
