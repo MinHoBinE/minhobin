@@ -146,7 +146,7 @@ def format_mtt_report(stock_name, 기준일, checklist, rs_value, 참조일자):
             pass_count += 1
 
     all_pass = pass_count == len(checklist)
-    summary = f"\n▶ {'ALL PASS 🎉' if all_pass else f'{pass_count}/{len(checklist)} PASS'}"
+    summary = f"\n▶ {'ALL PASS 💯 🎉' if all_pass else f'{pass_count}/{len(checklist)} PASS'}"
     date_line = f"\n⚠ {참조일자} 데이터 기준"
     return f"[MTT 체크리스트 - {stock_name} ({기준일})]\n" + "\n".join(lines) + summary + date_line
 
