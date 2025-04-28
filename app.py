@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import pandas as pd
 from MinhoReport import (
     parse_stock_input, get_latest_date, load_rs_from_markdown,
@@ -19,9 +20,9 @@ def suggest_stocks(user_input, stock_map, n=5):
     return matches[['Name','Code']].head(n).values.tolist()
 
 st.title("📈 Minervini Trend Template 자동 분석기 📊")
-st.markdown("**종목명(또는 6자리 코드)**를 입력하면 최신 MTT 체크리스트 결과가 바로 출력됩니다.<br>예: 삼성전자, 005930", unsafe_allow_html=True)
+st.markdown("**종목명(또는 6자리 코드)**를 입력하면 최신 MTT 체크리스트 결과와 TradingView 차트가 바로 출력됩니다.<br>예: 삼성전자, 005930", unsafe_allow_html=True)
 
-# 🔥 다크/라이트 모드 자동 감지 스타일
+# 다크/라이트 모드 스타일
 st.markdown(
     """
     <style>
@@ -75,8 +76,38 @@ def main(user_input):
             latest, code, name
         )
         checklist, base_date = mtt_checklist(price_df, rs_value)
+        
+        # 🔥 TradingView 차트 붙이기
+        tradingview_code = f"KRX:{code}"
+        widget_html = f"""
+        <div class="tradingview-widget-container">
+          <div id="tradingview_{code}" style="height:360px"></div>
+          <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+          <script type="text/javascript">
+            new TradingView.widget({{
+              "width": "100%",
+              "height": 360,
+              "symbol": "{tradingview_code}",
+              "interval": "D",
+              "timezone": "Asia/Seoul",
+              "theme": "light",
+              "style": "1",
+              "locale": "ko",
+              "toolbar_bg": "#f1f3f6",
+              "withdateranges": true,
+              "hide_side_toolbar": false,
+              "allow_symbol_change": true,
+              "save_image": false,
+              "container_id": "tradingview_{code}"
+            }});
+          </script>
+        </div>
+        """
+        st.markdown("### 📊 TradingView 실시간 차트")
+        components.html(widget_html, height=380, scrolling=False)
+        
+        # 분석 결과 출력
         report = format_mtt_report(name, base_date, checklist, rs_value, latest)
-        # ✅ 줄바꿈은 <br>로, 스타일은 class로!
         st.markdown(
             f"<div class='mtt-result-box'>{report.replace(chr(10), '<br>')}</div>",
             unsafe_allow_html=True
