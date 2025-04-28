@@ -1,5 +1,7 @@
 import streamlit as st
 import pandas as pd
+import csv
+from datetime import datetime
 from MinhoReport import (
     parse_stock_input, get_latest_date, load_rs_from_markdown,
     load_stock_price_csv, mtt_checklist, format_mtt_report, get_first_float
@@ -7,6 +9,15 @@ from MinhoReport import (
 
 STOCK_LIST_URL = 'https://raw.githubusercontent.com/dalinaum/rs/refs/heads/main/krx-list.csv'
 stock_list = pd.read_csv(STOCK_LIST_URL, dtype={'Code':str})[['Code','Name']]
+
+LOG_FILE = "user_logs.csv"
+
+# 로그 기록 함수 (시간, 입력값, 주요 결과 한 줄)
+def log_user_action(user_input, result_summary):
+    now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    with open(LOG_FILE, 'a', encoding='utf-8', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow([now, user_input, result_summary])
 
 def suggest_stocks(user_input, stock_map, n=5):
     user_input = user_input.strip()
@@ -21,7 +32,7 @@ def suggest_stocks(user_input, stock_map, n=5):
 st.title("📈 Minervini Trend Template 자동 분석기 📊")
 st.markdown("**종목명(또는 6자리 코드)**를 입력하면 최신 MTT 체크리스트 결과가 바로 출력됩니다.<br>예: 삼성전자, 005930", unsafe_allow_html=True)
 
-# 🔥 다크/라이트 모드 자동 감지 스타일
+# 스타일: 다크/라이트 모드 대응
 st.markdown(
     """
     <style>
@@ -60,13 +71,17 @@ def main(user_input):
                 st.markdown("아래와 비슷한 종목이 있습니다. 복사해서 입력해 보세요:")
                 for n, c in suggestions:
                     st.markdown(f"- **{n}** (`{c}`)")
+                # 로그: "종목 없음" 케이스
+                log_user_action(user_input, "NOT FOUND")
             else:
                 st.error(f"종목 '{user_input}'을(를) 찾을 수 없습니다. 예: 삼성전자, 005930")
+                log_user_action(user_input, "NOT FOUND")
             return
         latest = get_latest_date(code, name)
         rs_row = load_rs_from_markdown(latest, code)
         if rs_row.empty:
             st.warning("❗ RS 데이터가 없습니다.")
+            log_user_action(user_input, "NO RS DATA")
             return
         rs_raw = rs_row.iloc[0]['RS']
         rs_value = get_first_float(rs_raw)
@@ -81,8 +96,13 @@ def main(user_input):
             f"<div class='mtt-result-box'>{report.replace(chr(10), '<br>')}</div>",
             unsafe_allow_html=True
         )
+        # 로그 저장: 결과는 "PASS/전체/날짜/종목명" 식 요약
+        total = len(checklist)
+        passes = sum(1 for _, passed in checklist if passed)
+        log_user_action(user_input, f"{name} ({base_date}) - {passes}/{total} PASS")
     except Exception as e:
         st.error(f"❗ 오류 발생: {e}")
+        log_user_action(user_input, f"ERROR: {e}")
 
 if run_btn or (user_input and st.session_state.get("input_submitted")):
     main(user_input)
