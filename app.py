@@ -33,16 +33,23 @@ def save_to_github(query, stock_name, stock_code, result, error):
     url = f'https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/contents/{FILE_PATH}'
     try:
         response = requests.get(url, headers=headers)
+        print(f"GitHub API GET 응답: {response.status_code}")
+        print(f"응답 내용: {response.text}")
+        
         if response.status_code == 200:
             # 파일이 존재하면 기존 내용 가져오기
             content = base64.b64decode(response.json()['content']).decode('utf-8')
             df = pd.read_csv(pd.StringIO(content))
+            sha = response.json()['sha']
         else:
             # 파일이 없으면 새로 생성
             df = pd.DataFrame(columns=['query', 'stock_name', 'stock_code', 'pass_count', 'error', 'created_at'])
+            sha = None
     except Exception as e:
         print(f"기존 파일 로드 실패: {e}")
+        print(f"오류 상세: {traceback.format_exc()}")
         df = pd.DataFrame(columns=['query', 'stock_name', 'stock_code', 'pass_count', 'error', 'created_at'])
+        sha = None
     
     # 결과에서 패스한 항목 개수 추출
     pass_count = 0
@@ -63,25 +70,30 @@ def save_to_github(query, stock_name, stock_code, result, error):
     df = pd.concat([df, new_data], ignore_index=True)
     
     # CSV로 변환
-    csv_content = df.to_csv(index=False)
+    csv_content = df.to_csv(index=False, encoding='utf-8-sig')
     
     # GitHub에 파일 업로드
     data = {
         'message': f'Add analysis history: {query}',
-        'content': base64.b64encode(csv_content.encode()).decode(),
+        'content': base64.b64encode(csv_content.encode('utf-8-sig')).decode(),
         'branch': 'main'
     }
     
-    if response.status_code == 200:
-        # 파일이 존재하면 sha도 포함
-        data['sha'] = response.json()['sha']
+    if sha:
+        data['sha'] = sha
     
     try:
         response = requests.put(url, headers=headers, json=data)
-        response.raise_for_status()
-        print("GitHub에 저장 성공!")
+        print(f"GitHub API PUT 응답: {response.status_code}")
+        print(f"응답 내용: {response.text}")
+        if response.status_code != 200 and response.status_code != 201:
+            print(f"GitHub 저장 실패: {response.status_code}")
+            print(f"응답 내용: {response.text}")
+        else:
+            print("GitHub에 저장 성공!")
     except Exception as e:
         print(f"GitHub 저장 실패: {e}")
+        print(f"오류 상세: {traceback.format_exc()}")
 
 def get_history():
     if not GITHUB_TOKEN:
@@ -335,9 +347,15 @@ def index():
 
         except Exception as e:
             error = str(e)
+            print(f"분석 중 오류 발생: {e}")
+            print(f"오류 상세: {traceback.format_exc()}")
         
         # GitHub에 저장
-        save_to_github(q, stock_name, stock_code, result, error)
+        try:
+            save_to_github(q, stock_name, stock_code, result, error)
+        except Exception as e:
+            print(f"히스토리 저장 중 오류 발생: {e}")
+            print(f"오류 상세: {traceback.format_exc()}")
     
     return render_template_string(HTML, result=result, error=error)
 
