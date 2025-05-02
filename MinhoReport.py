@@ -4,6 +4,7 @@ import re
 from io import StringIO
 from datetime import datetime, timedelta
 
+
 def parse_stock_input(user_input, stock_map):
     # 종목코드가 입력됐을 때
     code_match = re.search(r"\b\d{6}\b", user_input)
@@ -21,6 +22,7 @@ def parse_stock_input(user_input, stock_map):
             return code, name
     return None, None
 
+
 def get_latest_date(code, name):
     today = datetime.now()
     for i in range(30):
@@ -35,6 +37,7 @@ def get_latest_date(code, name):
             print(f"==> 반환 날짜: {check_date}")
             return check_date
     raise Exception("최근 30일 내에 RS와 가격 데이터가 모두 있는 날짜가 없습니다.")
+
 
 def load_rs_from_markdown(date_str, code):
     url = f"https://raw.githubusercontent.com/dalinaum/rs/main/docs/_posts/{date_str}-krx-rs.markdown"
@@ -74,6 +77,7 @@ def load_rs_from_markdown(date_str, code):
     rs_row = df[df['Code'] == str(code).zfill(6)]
     return rs_row
 
+
 def load_stock_price_csv(base_url, date, code, name):
     url = f"{base_url}/{date}/{code}-{name}.csv"
     print(f"[가격 데이터 CSV 로드] {url}")
@@ -83,8 +87,10 @@ def load_stock_price_csv(base_url, date, code, name):
     df = pd.read_csv(StringIO(resp.text))
     return df
 
+
 def calc_ma(series, window):
     return series.rolling(window=window).mean()
+
 
 def mtt_checklist(price_df, rs):
     price_df = price_df.copy()
@@ -114,7 +120,8 @@ def mtt_checklist(price_df, rs):
         ("주가가 52주(1년) 최고가 대비 25% 이내", (max_52w - close) / max_52w <= 0.25 if max_52w > 0 else False),
         ("상대강도(RS) 지수가 70 이상", rs >= 70),
     ]
-    return checks, latest['Date']
+    return checks
+
 
 def format_mtt_report(stock_name, 기준일, checklist, rs_value):
     checkmark = "✅"
@@ -142,6 +149,7 @@ def format_mtt_report(stock_name, 기준일, checklist, rs_value):
         + summary
         + date_line
     )
+
 
 def get_first_float(val):
     m = re.search(r'\d+(\.\d+)?', str(val))
@@ -171,7 +179,8 @@ if __name__ == "__main__":
             'https://raw.githubusercontent.com/dalinaum/rs/main/DATA',
             latest_date, code, name
         )
-        checklist, 기준일 = mtt_checklist(price_df, rs_value)
+        checklist = mtt_checklist(price_df, rs_value)
+        기준일 = latest_date
         report = format_mtt_report(name, 기준일, checklist, rs_value)
         print(report)
     except Exception as e:
