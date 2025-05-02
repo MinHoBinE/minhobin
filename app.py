@@ -5,6 +5,7 @@ import difflib
 import requests
 import base64
 import os
+import io
 from datetime import datetime
 from MinhoReport import (
     parse_stock_input, get_latest_date, load_rs_from_markdown,
@@ -39,7 +40,7 @@ def save_to_github(query, stock_name, stock_code, result, error):
         if response.status_code == 200:
             # 파일이 존재하면 기존 내용 가져오기
             content = base64.b64decode(response.json()['content']).decode('utf-8')
-            df = pd.read_csv(pd.StringIO(content))
+            df = pd.read_csv(io.StringIO(content))
             sha = response.json()['sha']
         else:
             # 파일이 없으면 새로 생성
