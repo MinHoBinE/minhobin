@@ -75,7 +75,7 @@ def main(user_input):
             latest, code, name
         )
         checklist, base_date = mtt_checklist(price_df, rs_value)
-        report = format_mtt_report(name, base_date, checklist, rs_value, latest)
+        report = format_mtt_report(name, base_date, checklist, rs_value)
         # ✅ 줄바꿈은 <br>로, 스타일은 class로!
         st.markdown(
             f"<div class='mtt-result-box'>{report.replace(chr(10), '<br>')}</div>",
