@@ -51,10 +51,21 @@ def load_rs_from_markdown(date_str, code):
     rows = [r.strip('|') for r in table_lines[2:]]
     records = [[c.strip() for c in row.split('|')] for row in rows if row.strip()]
     df = pd.DataFrame(records, columns=header)
-    df['Code'] = df[header[0]].apply(lambda x: re.search(r'\[(\d{6})\]', x).group(1))
+
+    # 종목코드 안전 추출
+    def extract_code(cell):
+        m = re.search(r'\[(\d{6})\]', cell)
+        return m.group(1) if m else None
+    df['Code'] = df[header[0]].apply(extract_code)
+    df = df.dropna(subset=['Code'])  # 코드 없는 행 제거
+
+    # RS 값 추출
     rs_col = [col for col in df.columns if '상대강도' in col][0]
-    df['RS'] = df[rs_col].apply(lambda x: float(re.match(r'^\d+', str(x)).group()))
-    df = df.dropna(subset=['Code'])
+    def extract_rs(cell):
+        m = re.match(r'^\d+', str(cell).strip())
+        return float(m.group()) if m else float('nan')
+    df['RS'] = df[rs_col].apply(extract_rs)
+
     return df[df['Code'] == code]
 
 def load_stock_price_csv(base_url, date, code, name):
