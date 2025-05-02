@@ -1,91 +1,63 @@
-import streamlit as st
+from flask import Flask, request, render_template_string
 import pandas as pd
+import traceback
+
 from MinhoReport import (
-    parse_stock_input, get_latest_date, load_rs_from_markdown,
-    load_stock_price_csv, mtt_checklist, format_mtt_report, get_first_float
+    parse_stock_input,
+    get_latest_date,
+    load_rs_from_markdown,
+    get_first_float,
+    load_stock_price_csv,
+    mtt_checklist,
+    format_mtt_report
 )
 
-STOCK_LIST_URL = 'https://raw.githubusercontent.com/dalinaum/rs/refs/heads/main/krx-list.csv'
-stock_list = pd.read_csv(STOCK_LIST_URL, dtype={'Code':str})[['Code','Name']]
+app = Flask(__name__)
 
-def suggest_stocks(user_input, stock_map, n=5):
-    user_input = user_input.strip()
-    if not user_input:
-        return []
-    matches = stock_map[
-        stock_map['Name'].str.contains(user_input, case=False, na=False) |
-        stock_map['Code'].str.contains(user_input)
-    ]
-    return matches[['Name','Code']].head(n).values.tolist()
+HTML = """
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"><title>Minho 분석기</title></head>
+<body>
+  <h1>Minho 분석기</h1>
+  <form method="post">
+    <label>종목명 또는 코드: <input type="text" name="query" required></label>
+    <button type="submit">분석 실행</button>
+  </form>
+  {% if result %}
+    <pre style="background:#f0f0f0; padding:1em;">{{ result }}</pre>
+  {% elif error %}
+    <p style="color:red;">오류 발생: {{ error }}</p>
+  {% endif %}
+</body>
+</html>
+"""
 
-st.title("📈 Minervini Trend Template 자동 분석기 📊")
-st.markdown("**종목명(또는 6자리 코드)**를 입력하면 최신 MTT 체크리스트 결과가 바로 출력됩니다.<br>예: 삼성전자, 005930", unsafe_allow_html=True)
+@app.route("/", methods=["GET", "POST"])
+def index():
+    result = error = None
+    if request.method == "POST":
+        q = request.form["query"]
+        try:
+            # 종목 리스트 로드
+            stock_list_url = 'https://raw.githubusercontent.com/dalinaum/rs/refs/heads/main/krx-list.csv'
+            stock_map = pd.read_csv(stock_list_url, dtype={'Code':str})[['Code','Name']]
 
-# 🔥 다크/라이트 모드 자동 감지 스타일
-st.markdown(
-    """
-    <style>
-    .mtt-result-box {
-      font-size: 1.1em;
-      border-radius: 12px;
-      padding: 14px;
-      margin-top: 10px;
-      background: #f8f9fa;
-      color: black;
-    }
-    @media (prefers-color-scheme: dark) {
-      .mtt-result-box {
-        background: #222831 !important;
-        color: #f1f1f1 !important;
-      }
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
+            code, name = parse_stock_input(q, stock_map)
+            if code is None:
+                raise ValueError("입력에서 종목을 찾을 수 없습니다.")
 
-user_input = st.text_input("종목명 또는 6자리 종목코드 입력", value="", placeholder="예: 삼성전자 또는 005930")
-run_btn = st.button("분석하기")
+            latest_date = get_latest_date(code, name)
+            rs_row = load_rs_from_markdown(latest_date, code)
+            rs_val = get_first_float(rs_row.iloc[0]['RS'])
+            price_df = load_stock_price_csv('https://raw.githubusercontent.com/dalinaum/rs/main/DATA', latest_date, code, name)
+            checklist, 기준일 = mtt_checklist(price_df, rs_val)
+            result = format_mtt_report(name, 기준일, checklist, rs_val, latest_date)
 
-def main(user_input):
-    if not user_input:
-        st.info("분석할 종목명을 입력해 주세요.")
-        return
-    try:
-        code, name = parse_stock_input(user_input, stock_list)
-        if code is None:
-            suggestions = suggest_stocks(user_input, stock_list, n=5)
-            if suggestions:
-                st.error(f"종목 '{user_input}'을(를) 찾을 수 없습니다.")
-                st.markdown("아래와 비슷한 종목이 있습니다. 복사해서 입력해 보세요:")
-                for n, c in suggestions:
-                    st.markdown(f"- **{n}** (`{c}`)")
-            else:
-                st.error(f"종목 '{user_input}'을(를) 찾을 수 없습니다. 예: 삼성전자, 005930")
-            return
-        latest = get_latest_date(code, name)
-        rs_row = load_rs_from_markdown(latest, code)
-        if rs_row.empty:
-            st.warning("❗ RS 데이터가 없습니다.")
-            return
-        rs_raw = rs_row.iloc[0]['RS']
-        rs_value = get_first_float(rs_raw)
-        price_df = load_stock_price_csv(
-            'https://raw.githubusercontent.com/dalinaum/rs/main/DATA',
-            latest, code, name
-        )
-        checklist, base_date = mtt_checklist(price_df, rs_value)
-        report = format_mtt_report(name, base_date, checklist, rs_value)
-        # ✅ 줄바꿈은 <br>로, 스타일은 class로!
-        st.markdown(
-            f"<div class='mtt-result-box'>{report.replace(chr(10), '<br>')}</div>",
-            unsafe_allow_html=True
-        )
-    except Exception as e:
-        st.error(f"❗ 오류 발생: {e}")
+        except Exception as e:
+            error = traceback.format_exc().splitlines()[-1]
 
-if run_btn or (user_input and st.session_state.get("input_submitted")):
-    main(user_input)
-elif user_input:
-    st.session_state["input_submitted"] = True
-    main(user_input)
+    return render_template_string(HTML, result=result, error=error)
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=8080)
