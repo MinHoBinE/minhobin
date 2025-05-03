@@ -206,9 +206,11 @@ HTML = """
 
 @app.route("/suggest")
 def suggest():
-    q = request.args.get("q", "")
-    matches = difflib.get_close_matches(q, stock_names, n=10, cutoff=0.3)
-    return jsonify(matches)
+    q = request.args.get("q", "").lower()  # 소문자로 변환
+    lowered_names = {name.lower(): name for name in stock_names}  # 소문자 → 원본 매핑
+    matches = difflib.get_close_matches(q, lowered_names.keys(), n=10, cutoff=0.3)
+    original_matches = [lowered_names[m] for m in matches]
+    return jsonify(original_matches)
 
 @app.route("/", methods=["GET", "POST"])
 def index():
