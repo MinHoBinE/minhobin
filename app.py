@@ -124,7 +124,7 @@ HTML = """
             <div><img src=\"{{ img_url }}\" alt=\"일봉 캔들 차트\" style=\"width: 100%; border: 1px solid #ccc; border-radius: 8px;\"></div>
             {% endif %}
 
-            <div class=\"mtt-result-box\">{{ result }}</div>
+            <div class=\"mtt-result-box\">{{ result | safe }}</div>
 
             {% if stock_code %}
             <div><a class=\"naver-button\" href=\"https://finance.naver.com/item/main.naver?code={{ stock_code }}\" target=\"_blank\">🔗 네이버에서 자세히 보기</a></div>

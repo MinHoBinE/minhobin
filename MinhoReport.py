@@ -80,18 +80,18 @@ def mtt_checklist(price_df, rs):
     return checks, latest['Date']
 
 def format_mtt_report(stock_name, 기준일, checklist, rs_value):
-    # 참조일자 없이 기준일만 사용
     check, cross = "✅", "❌"
     lines = []
     passed = 0
     for i, (desc, ok) in enumerate(checklist, 1):
         emoji = check if ok else cross
         suffix = f" (현재 RS: {int(rs_value)})" if i == 8 else ''
-        lines.append(f"{i}. {desc} {emoji}{suffix}\n")
-        if ok: passed += 1
-    summary = f"\n**▶ {'ALL PASS 💯 🎉' if passed == len(checklist) else f'{passed}/{len(checklist)} PASS'}**\n"
-    date_line = f"\n⚠ {기준일} 데이터 기준\n"
-    return f"**[MTT 체크리스트 - {stock_name} ({기준일})]**\n\n" + "\n".join(lines) + summary + date_line
+        lines.append(f"{i}. {desc} {emoji}{suffix}<br>")
+        if ok:
+            passed += 1
+    summary = f"<br><strong>▶ {'ALL PASS 💯 🎉' if passed == len(checklist) else f'{passed}/{len(checklist)} PASS'}</strong><br>"
+    date_line = f"<br>⚠ {기준일} 데이터 기준<br>"
+    return f"<strong>[MTT 체크리스트 - {stock_name} ({기준일})]</strong><br><br>" + "".join(lines) + summary + date_line
 
 def get_first_float(val):
     m = re.search(r"\d+(?:\.\d+)?", str(val))
