@@ -69,11 +69,11 @@ def mtt_checklist(price_df, rs):
     min52, max52 = recent['Close'].min(), recent['Close'].max()
     checks = [
         ("주가 > 150일선과 200일선", latest['Close'] > latest['MA150'] and latest['Close'] > latest['MA200']),
-        ("150일 > 200일선", latest['MA150'] > latest['MA200']),
-        ("200일선 1개월 상승", latest['MA200'] > prev200),
-        ("50일선 > 150/200일선", latest['MA50'] > latest['MA150'] and latest['MA50'] > latest['MA200']),
+        ("150일선 > 200일선", latest['MA150'] > latest['MA200']),
+        ("200일선 최근 1개월 상승", latest['MA200'] > prev200),
+        ("50일선 > 150일선과 200일선", latest['MA50'] > latest['MA150'] and latest['MA50'] > latest['MA200']),
         ("주가 > 50일선", latest['Close'] > latest['MA50']),
-        ("52주 저가 대비 +30%", (latest['Close'] - min52) / min52 >= 0.3),
+        ("52주 저가 대비 +30% 이상", (latest['Close'] - min52) / min52 >= 0.3),
         ("52주 고가 대비 -25% 이내", (max52 - latest['Close']) / max52 <= 0.25),
         ("RS ≥ 70", rs >= 70),
     ]
@@ -87,11 +87,11 @@ def format_mtt_report(stock_name, 기준일, checklist, rs_value):
     for i, (desc, ok) in enumerate(checklist, 1):
         emoji = check if ok else cross
         suffix = f" (현재 RS: {int(rs_value)})" if i == 8 else ''
-        lines.append(f"{i}. {desc} {emoji}{suffix}")
+        lines.append(f"{i}. {desc} {emoji}{suffix}\n")
         if ok: passed += 1
-    summary = f"\n▶ {'ALL PASS 💯 🎉' if passed == len(checklist) else f'{passed}/{len(checklist)} PASS'}"
-    date_line = f"\n⚠ {기준일} 데이터 기준"
-    return f"[MTT 체크리스트 - {stock_name} ({기준일})]\n" + "\n".join(lines) + summary + date_line
+    summary = f"\n**▶ {'ALL PASS 💯 🎉' if passed == len(checklist) else f'{passed}/{len(checklist)} PASS'}**\n"
+    date_line = f"\n⚠ {기준일} 데이터 기준\n"
+    return f"**[MTT 체크리스트 - {stock_name} ({기준일})]**\n\n" + "\n".join(lines) + summary + date_line
 
 def get_first_float(val):
     m = re.search(r"\d+(?:\.\d+)?", str(val))

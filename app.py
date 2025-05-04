@@ -205,6 +205,18 @@ HTML = """
             }
         };
     </script>
+
+<footer style="margin-top: 50px; text-align: center; font-size: 14px; color: #666;">
+    <p>🛠 만든 사람: <strong>민호빈이</strong></p>
+    <p>
+        ☕ 후원 및 문의: 
+        <a href="https://open.kakao.com/me/minhobin" target="_blank" style="text-decoration: none; font-weight: bold; color: inherit;">
+            <img src="/static/kakaotalk.png" alt="카카오톡" style="vertical-align: middle; width: 20px; height: 20px; margin-right: 4px;">
+            오픈카톡방 🔗
+        </a>
+    </p>
+</footer>
+    
 </body>
 </html>
 """
