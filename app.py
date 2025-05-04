@@ -104,6 +104,11 @@ HTML = """
 </head>
 <body>
     <h1>📈 Minervini Trend Template 분석기 📊</h1>
+    <p style="text-align: left; max-width: 600px; margin: 0 auto 20px; font-size: clamp(16px, 5vw, 18px); line-height: 1.5;">
+        <strong>종목명(또는 6자리 코드)</strong>를 입력하면<br>
+        최신 MTT 체크리스트가 바로 출력됩니다.
+    </p>
+
     <form method=\"post\" id=\"search-form\">
         <div class=\"input-group\">
             <input type=\"text\" name=\"query\" id=\"stock-input\" placeholder=\"예: 삼성전자 또는 005930\" required autocomplete=\"off\">
