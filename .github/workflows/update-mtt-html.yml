@@ -1,0 +1,33 @@
+name: 📈 Update MTT HTML Daily
+
+on:
+  schedule:
+    - cron: '0 9 * * *'  # 한국시간(KST) 오후 6시 = UTC 09:00
+  workflow_dispatch:      # 수동 실행도 가능
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: ⬇️ Checkout repository
+        uses: actions/checkout@v3
+
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: 📦 Install dependencies
+        run: pip install requests
+
+      - name: 🧠 Generate latest MTT HTML
+        run: python daily_MTT_list.py
+
+      - name: 📤 Commit and push if updated
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add static/mtt-latest.html
+          git diff --cached --quiet || git commit -m "🔄 Update MTT HTML for $(date '+%Y-%m-%d')"
+          git push

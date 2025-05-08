@@ -83,16 +83,17 @@ HTML = """
 <html lang=\"ko\">
 <head>
     <meta charset=\"utf-8\">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>📈 Minervini Trend Template 분석기 📊</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; line-height: 1.6; }
-        h1 { font-size: clamp(16px, 4.985vw, 33px); text-align: center; white-space: normal; }
-        form { max-width: 600px; margin: 0 auto; text-align: center; }
+        body { width: 100%; max-width: 600px; margin: 0 auto; padding: 20px; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; line-height: 1.6; }
+        h1 { font-size: clamp(16px, 4.985vw, 30px); text-align: center; white-space: normal; }
+        form { width: 100%; max-width: 600px; margin: 0 auto; text-align: center; }
         .input-group { display: flex; gap: 10px; margin-bottom: 20px; position: relative; justify-content: center; }
         input[type=\"text\"] { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 16px; min-width: 0; }
         button { padding: 10px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
         button:hover { background-color: #45a049; }
-        .container { max-width: 600px; margin: 0 auto; text-align: center; }
+        .container { width: 100%; max-width: 600px; margin: 0 auto; text-align: center; }
         .stock-name-heading { font-size: 20px; margin: 10px 0; font-weight: bold; color: #333; }
         .mtt-result-box { font-size: 1.1em; border-radius: 12px; padding: 14px; margin-top: 20px; background: #f8f9fa; color: black; white-space: pre-wrap; text-align: left; }
         .naver-button { text-decoration: none; color: white; background: #4CAF50; padding: 10px 20px; border-radius: 6px; display: inline-block; font-size: 16px; margin-top: 16px; }
@@ -101,6 +102,16 @@ HTML = """
         .suggestion-item { padding: 8px 12px; cursor: pointer; text-align: left; }
         .suggestion-item:hover { background-color: #f0f0f0; }
     </style>
+    
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-ZKJF267SZL"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+
+        gtag('config', 'G-ZKJF267SZL');
+    </script>
 </head>
 <body>
     <h1>📈 Minervini Trend Template 분석기 📊</h1>
@@ -117,11 +128,25 @@ HTML = """
         </div>
     </form>
 
+    <div id="loading-message"
+        style="display: none; text-align: center; margin-top: 20px; font-weight: bold; color: #4CAF50;
+                opacity: 0; transition: opacity 0.4s ease;">
+    🔄 분석 중입니다... 잠시만 기다려주세요!
+    </div>
+
+    {% if not result and not error %}
+        <div id="hero-image" style="text-align: center; margin: 40px 0;">
+            <img src="/static/default-banner.png" alt="MTT 대표 이미지"
+                style="max-width: 100%; height: auto; border-radius: 8px;">
+        </div>
+    {% endif %}
+
+
     {% if result %}
         <div class=\"container\">
             {% if stock_name and stock_code %}<div class=\"stock-name-heading\">📌 {{ stock_name }} ({{ stock_code }})</div>{% endif %}
             {% if img_url %}
-            <div><img src=\"{{ img_url }}\" alt=\"일봉 캔들 차트\" style=\"width: 100%; border: 1px solid #ccc; border-radius: 8px;\"></div>
+            <div><img src=\"{{ img_url }}\" alt=\"일봉 캔들 차트\" style=\"width: 100%; max-width: 600px; height: auto; border: 1px solid #ccc; border-radius: 8px;\"></div>
             {% endif %}
 
             <div class=\"mtt-result-box\">{{ result | safe }}</div>
@@ -133,6 +158,28 @@ HTML = """
     {% elif error %}
         <div class=\"error\">❗ 오류 발생: {{ error }}</div>
     {% endif %}
+
+    <div style="text-align: center; margin-top: 30px;">
+        <a href="{{ url_for('static', filename='mtt-latest.html') }}"
+            style="
+                display: inline-block;
+                padding: 12px 24px;
+                background-color: #444;
+                color: #fff;
+                border: none;
+                border-radius: 8px;
+                text-decoration: none;
+                font-weight: 600;
+                font-size: 16px;
+                box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+                transition: background-color 0.2s ease;
+            "
+            onmouseover="this.style.backgroundColor='#333'"
+            onmouseout="this.style.backgroundColor='#444'"
+        >
+            💯 ALL PASS 리스트 보기 🍯
+        </a>
+    </div>
 
     <script>
         const input = document.getElementById('stock-input');
@@ -206,6 +253,28 @@ HTML = """
         };
     </script>
 
+    <script>
+        const form = document.getElementById('search-form');
+        const loadingMessage = document.getElementById('loading-message');
+
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            loadingMessage.style.display = 'block';
+
+            // 1. 브라우저가 DOM 업데이트할 시간 확보
+            requestAnimationFrame(() => {
+                loadingMessage.style.opacity = 1;
+
+                // 2. 시각적으로 최소 500ms 정도 유지되도록 delay 조절
+                setTimeout(() => {
+                    form.submit();
+                }, 500); // 0.5초는 사용자에게 확실히 보임
+            });
+        });
+    </script>
+
+
 <footer style="margin-top: 50px; text-align: center; font-size: 14px; color: #666;">
     <p>🛠 만든 사람: <strong>민호빈이</strong></p>
     <p>
@@ -244,7 +313,7 @@ def index():
             latest_date = get_latest_date(code, name)
             rs_row = load_rs_from_markdown(latest_date, code)
             if rs_row.empty:
-                raise ValueError("RS 데이터가 없습니다.")
+                raise ValueError("RS 데이터가 없습니다. 상장 후 거래일수가 부족한 신규상장주일 확률이 높습니다.")
 
             rs_val = get_first_float(rs_row.iloc[0]['RS'])
             price_df = load_stock_price_csv('https://raw.githubusercontent.com/dalinaum/rs/main/DATA', latest_date, code, name)
