@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template_string, jsonify
+from flask import Flask, request, render_template_string, jsonify, send_file, make_response
 import pandas as pd
 import traceback
 import difflib
@@ -7,6 +7,7 @@ import base64
 import os
 import io
 import time
+import threading
 from datetime import datetime
 from MinhoReport import (
     parse_stock_input, get_latest_date, load_rs_from_markdown,
@@ -128,12 +129,6 @@ HTML = """
         </div>
     </form>
 
-    <div id="loading-message"
-        style="display: none; text-align: center; margin-top: 20px; font-weight: bold; color: #4CAF50;
-                opacity: 0; transition: opacity 0.4s ease;">
-    🔄 분석 중입니다... 잠시만 기다려주세요!
-    </div>
-
     {% if not result and not error %}
         <div id="hero-image" style="text-align: center; margin: 40px 0;">
             <img src="/static/default-banner.png" alt="MTT 대표 이미지"
@@ -160,7 +155,7 @@ HTML = """
     {% endif %}
 
     <div style="text-align: center; margin-top: 30px;">
-        <a href="{{ url_for('static', filename='mtt-latest.html') }}"
+        <a href="/mtt-latest"
             style="
                 display: inline-block;
                 padding: 12px 24px;
@@ -188,6 +183,12 @@ HTML = """
         let timeoutId;
         let selectedIndex = -1;
 
+        // 📌 기본 제출 차단 → 우리가 직접 submit 할 것
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+        });
+
+        // 🔍 입력 시 자동완성 fetch
         input.addEventListener('input', function(e) {
             clearTimeout(timeoutId);
             const query = e.target.value.trim();
@@ -199,81 +200,68 @@ HTML = """
                 fetch(`/suggest?q=${encodeURIComponent(query)}`)
                     .then(response => response.json())
                     .then(data => {
-                        suggestions.innerHTML = '';
-                        selectedIndex = -1;
-                        if (data.length > 0) {
-                            data.forEach((item, index) => {
+                        const currentItems = Array.from(suggestions.children).map(el => el.textContent);
+                        const isListChanged =
+                            currentItems.length !== data.length ||
+                            currentItems.some((text, i) => text !== data[i]);
+
+                        if (isListChanged) {
+                            suggestions.innerHTML = '';
+                            selectedIndex = -1;
+                            data.forEach((item) => {
                                 const div = document.createElement('div');
                                 div.className = 'suggestion-item';
                                 div.textContent = item;
                                 div.addEventListener('click', () => {
                                     input.value = item;
                                     suggestions.style.display = 'none';
-                                    form.submit();
+                                    form.submit();  // ✅ 명시적 submit
                                 });
                                 suggestions.appendChild(div);
                             });
                             suggestions.style.display = 'block';
-                        } else {
-                            suggestions.style.display = 'none';
                         }
                     });
             }, 300);
         });
 
+        // ⌨️ 방향키 + Enter 처리
         input.addEventListener('keydown', function(e) {
             const items = suggestions.querySelectorAll('.suggestion-item');
             if (e.key === 'ArrowDown') {
+                e.preventDefault();
                 selectedIndex = (selectedIndex + 1) % items.length;
             } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
                 selectedIndex = (selectedIndex - 1 + items.length) % items.length;
             } else if (e.key === 'Enter') {
+                e.preventDefault();  // ✅ 항상 막음
                 if (selectedIndex >= 0 && items[selectedIndex]) {
-                    e.preventDefault();
                     input.value = items[selectedIndex].textContent;
-                    suggestions.style.display = 'none';
-                    form.submit();
                 }
+                suggestions.style.display = 'none';
+                form.submit();  // ✅ 조건 없이 무조건 submit
             }
+
             items.forEach((item, index) => {
                 item.style.backgroundColor = (index === selectedIndex) ? '#e0e0e0' : '';
             });
         });
 
+        // 🔘 바깥 클릭 시 자동완성 닫기
         document.addEventListener('click', function(e) {
             if (!input.contains(e.target) && !suggestions.contains(e.target)) {
                 suggestions.style.display = 'none';
             }
         });
 
+        // 🔃 초기 포커스
         window.onload = () => {
             if (window.matchMedia('(hover: hover)').matches) {
                 input.focus();
             }
         };
     </script>
-
-    <script>
-        const form = document.getElementById('search-form');
-        const loadingMessage = document.getElementById('loading-message');
-
-        form.addEventListener('submit', function (e) {
-            e.preventDefault();
-
-            loadingMessage.style.display = 'block';
-
-            // 1. 브라우저가 DOM 업데이트할 시간 확보
-            requestAnimationFrame(() => {
-                loadingMessage.style.opacity = 1;
-
-                // 2. 시각적으로 최소 500ms 정도 유지되도록 delay 조절
-                setTimeout(() => {
-                    form.submit();
-                }, 500); // 0.5초는 사용자에게 확실히 보임
-            });
-        });
-    </script>
-
 
 <footer style="margin-top: 50px; text-align: center; font-size: 14px; color: #666;">
     <p>🛠 만든 사람: <strong>민호빈이</strong></p>
@@ -297,6 +285,14 @@ def suggest():
     matches = difflib.get_close_matches(q, lowered_names.keys(), n=10, cutoff=0.3)
     original_matches = [lowered_names[m] for m in matches]
     return jsonify(original_matches)
+
+@app.route("/mtt-latest")
+def mtt_latest():
+    resp = make_response(send_file("static/mtt-latest.html"))
+    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    resp.headers['Pragma'] = 'no-cache'
+    resp.headers['Expires'] = '0'
+    return resp
 
 @app.route("/", methods=["GET", "POST"])
 def index():
@@ -329,11 +325,17 @@ def index():
             print("분석 중 오류 발생:", e)
             print(traceback.format_exc())
 
-        try:
-            save_to_github(q, stock_name, stock_code, result, error)
-        except Exception as e:
-            print("GitHub 저장 중 오류 발생:", e)
-            print(traceback.format_exc())
+        def async_save(query, stock_name, stock_code, result, error):
+            try:
+                save_to_github(query, stock_name, stock_code, result, error)
+            except Exception as e:
+                print("백그라운드 GitHub 저장 오류:", e)
+                print(traceback.format_exc())
+
+        threading.Thread(
+            target=async_save,
+            args=(q, stock_name, stock_code, result, error)
+        ).start()
 
     return render_template_string(HTML, result=result, error=error, stock_code=stock_code, img_url=img_url, stock_name=stock_name)
 

@@ -2,6 +2,7 @@ import requests
 import re
 from datetime import datetime, timedelta
 import os
+import time
 
 # === 설정 ===
 OUTPUT_PATH = "static/mtt-latest.html"
@@ -34,6 +35,7 @@ def load_mtt_data(date_str):
 # === 종목별 HTML 블록 생성 ===
 def make_html_block(code, name, rs, is_new=False):
     new_tag = "<span class='new'>✨ 신규 진입</span>" if is_new else ""
+    sidcode = int(time.time() * 1000)
     return f'''
 <div class="stock-block">
   <div class="stock-title">
@@ -43,7 +45,7 @@ def make_html_block(code, name, rs, is_new=False):
     {new_tag}
   </div>
   <a href="https://finance.naver.com/item/main.nhn?code={code}" target="_blank">
-    <img src="https://ssl.pstatic.net/imgfinance/chart/item/candle/day/{code}.png">
+    <img src="https://ssl.pstatic.net/imgfinance/chart/item/candle/day/{code}.png?sidcode={sidcode}">
   </a>
 </div>'''
 
@@ -83,6 +85,7 @@ def main():
     html_body = "\n".join(html_blocks)
 
     html_final = f"""<!DOCTYPE html>
+
 <html lang=\"ko\">
 <head>
   <meta charset=\"UTF-8\">
@@ -160,6 +163,19 @@ def main():
   </div>
 </body>
 </html>"""
+    
+    GA_SCRIPT = """
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-ZKJF267SZL"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-ZKJF267SZL');
+</script>
+"""
+
+    html_final = html_final.replace("</head>", GA_SCRIPT + "\n</head>")
 
     os.makedirs(os.path.dirname(OUTPUT_PATH), exist_ok=True)
     with open(OUTPUT_PATH, "w", encoding="utf-8") as f:
