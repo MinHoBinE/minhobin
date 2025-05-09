@@ -2,7 +2,7 @@ name: 📈 Update MTT HTML Daily
 
 on:
   schedule:
-    - cron: '0 9 * * 1-5'  # 월~금, 한국시간 오후 6시 (UTC 9:00)
+    - cron: '0 9 * * 1-5'  # 평일 오후 6시 (KST) = UTC 09:00
   workflow_dispatch:        # 수동 실행도 허용
 
 jobs:
@@ -30,8 +30,16 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+          # ✅ GitHub Actions 기본 인증 헤더 제거
+          git config --local --unset-all http.https://github.com/.extraheader || true
+
+          # ✅ 인증 토큰 포함된 remote 설정
           git remote set-url origin https://x-access-token:${TOKEN}@github.com/${{ github.repository }}
-          git remote -v  # 👀 디버깅용: 실제 remote URL 확인
+
+          echo "📡 Current remote:"
+          git remote -v
+
           git add static/mtt-latest.html
           git diff --cached --quiet || git commit -m "🔄 Update MTT HTML for $(date '+%Y-%m-%d')"
           git push origin HEAD
