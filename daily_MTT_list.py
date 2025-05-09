@@ -52,18 +52,19 @@ def make_html_block(code, name, rs, is_new=False):
 # === 메인 실행 ===
 def main():
     today = datetime.today()
-    today_str = today.strftime("%Y-%m-%d")
+    today_str = today.strftime("%Y-%m-%d")  # 페이지 상단 표시용 날짜
+    data_str = today_str
 
-    # 1. today 기준 데이터 찾기
+    # 1. 오늘자 데이터가 없으면 대체
     try:
-        today_matches = load_mtt_data(today_str)
+        today_matches = load_mtt_data(data_str)
     except FileNotFoundError:
         print(f"❗ 오늘({today_str}) 마크다운 없음 → 가장 최근 거래일로 대체")
-        today_str = get_latest_trading_date(today)
-        today_matches = load_mtt_data(today_str)
+        data_str = get_latest_trading_date(today)
+        today_matches = load_mtt_data(data_str)
 
-    # 2. 비교 대상 전일자 찾기 (today_str보다 더 전)
-    yesterday_str = get_latest_trading_date(datetime.strptime(today_str, "%Y-%m-%d"))
+    # 2. 비교용 전일 데이터 불러오기
+    yesterday_str = get_latest_trading_date(datetime.strptime(data_str, "%Y-%m-%d"))
     yesterday_matches = load_mtt_data(yesterday_str)
 
     # 3. 비교 및 정렬
@@ -85,11 +86,10 @@ def main():
     html_body = "\n".join(html_blocks)
 
     html_final = f"""<!DOCTYPE html>
-
-<html lang=\"ko\">
+<html lang="ko">
 <head>
-  <meta charset=\"UTF-8\">
-  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MTT ALL PASS 종목 차트</title>
   <style>
     body {{
@@ -98,7 +98,7 @@ def main():
       margin: 0 auto;
       padding: 20px;
       box-sizing: border-box;
-      font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
       line-height: 1.6;
     }}
     h2 {{
@@ -155,15 +155,15 @@ def main():
 <body>
   <h2>📈 {today_str} MTT ALL PASS 리스트 💯</h2>
   <p>차트 클릭시 해당 종목의 네이버 증권 페이지로 이동합니다.<br>
-  <span style=\"color: crimson;\">※ 차트 및 데이터에 수정주가 반영이 되지 않은 경우가 있으니 꼭 확인하세요!</span></p>
+  <span style="color: crimson;">※ 차트 및 데이터에 수정주가 반영이 되지 않은 경우가 있으니 꼭 확인하세요!</span></p>
 
   {html_body}
-  <div class=\"home-button\">
-    <a href=\"https://minhobin.fly.dev/\">🏠 홈으로 돌아가기</a>
+  <div class="home-button">
+    <a href="https://minhobin.fly.dev/">🏠 홈으로 돌아가기</a>
   </div>
 </body>
 </html>"""
-    
+
     GA_SCRIPT = """
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-ZKJF267SZL"></script>
@@ -181,7 +181,7 @@ def main():
     with open(OUTPUT_PATH, "w", encoding="utf-8") as f:
         f.write(html_final)
 
-    print(f"✅ mtt-latest.html 생성 완료 ({today_str})")
+    print(f"✅ mtt-latest.html 생성 완료 (표시날짜: {today_str}, 데이터 기준: {data_str})")
 
 # 실행
 if __name__ == "__main__":
