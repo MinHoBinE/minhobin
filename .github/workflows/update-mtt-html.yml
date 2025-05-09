@@ -2,8 +2,8 @@ name: 📈 Update MTT HTML Daily
 
 on:
   schedule:
-    - cron: '0 9 * * *'  # 한국시간(KST) 오후 6시 = UTC 09:00
-  workflow_dispatch:      # 수동 실행도 가능
+    - cron: '0 12 * * 1-5'  # 월~금(평일) 한국시간 오후 6시 = UTC 09:00
+  workflow_dispatch:       # 수동 실행도 허용
 
 jobs:
   build:
@@ -25,9 +25,12 @@ jobs:
         run: python daily_MTT_list.py
 
       - name: 📤 Commit and push if updated
+        env:
+          TOKEN: ${{ secrets.GH_PAT }}
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git remote set-url origin https://x-access-token:${TOKEN}@github.com/${{ github.repository }}
           git add static/mtt-latest.html
           git diff --cached --quiet || git commit -m "🔄 Update MTT HTML for $(date '+%Y-%m-%d')"
-          git push
+          git push origin HEAD
