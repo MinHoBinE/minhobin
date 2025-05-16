@@ -3,7 +3,7 @@ name: 📈 Update MTT HTML Daily
 on:
   schedule:
     - cron: '0 9 * * 1-5'  # 평일 오후 6시 (KST) = UTC 09:00
-  workflow_dispatch:        # 수동 실행도 허용
+  workflow_dispatch:        # 수동 실행도 허용 
 
 jobs:
   build:
