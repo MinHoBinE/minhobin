@@ -2,8 +2,8 @@ name: 📈 Update MTT HTML Daily
 
 on:
   schedule:
-    - cron: '0 9 * * 1-5'  # 평일 오후 6시 (KST = UTC 9시)
-  workflow_dispatch:        # 수동 실행 허용
+    - cron: '0 9 * * 1-5'  # 평일 오후 6시 (KST) = UTC 09:00
+  workflow_dispatch:        # 수동 실행도 허용
 
 jobs:
   build:
@@ -24,29 +24,22 @@ jobs:
       - name: 🧠 Generate latest MTT HTML
         run: python daily_MTT_list.py
 
-      - name: 📤 Commit and push if updated (GH_PAT)
+      - name: 📤 Commit and push if updated
+        env:
+          TOKEN: ${{ secrets.GH_PAT }}
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-          # 기존 인증 헤더 제거 (GitHub Actions 내부 헤더 충돌 방지)
+          # ✅ GitHub Actions 기본 인증 헤더 제거
           git config --local --unset-all http.https://github.com/.extraheader || true
 
-          # 인증 포함된 remote URL로 재설정 (GH_PAT 직접 삽입)
-          git remote set-url origin https://x-access-token:${{ secrets.GH_PAT }}@github.com/${{ github.repository }}
+          # ✅ 인증 토큰 포함된 remote 설정
+          git remote set-url origin https://x-access-token:${TOKEN}@github.com/${{ github.repository }}
 
           echo "📡 Current remote:"
           git remote -v
 
-          # 혹시 모를 충돌 방지를 위한 사전 pull
-          git pull --rebase --autostash || true
-
-          # 변경된 파일 커밋 및 푸시
           git add static/mtt-latest.html
-
-          if git diff --cached --quiet; then
-            echo "✅ No changes to commit"
-          else
-            git commit -m "🔄 Update MTT HTML for $(date '+%Y-%m-%d')"
-            git push origin HEAD
-          fi
+          git diff --cached --quiet || git commit -m "🔄 Update MTT HTML for $(date '+%Y-%m-%d')"
+          git push origin HEAD
